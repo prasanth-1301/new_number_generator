@@ -1,158 +1,258 @@
 import streamlit as st
-from itertools import product
+import random
 
-# Number mapping
-NUMBER_MAP = {
-    "0": ["3", "9"],
-    "1": ["8", "4"],
-    "2": ["3", "6"],
-    "3": ["4", "8"],
-    "4": ["6", "3"],
-    "5": ["0", "7"],
-    "6": ["2", "1"],
-    "7": ["4", "5"],
-    "8": ["6", "2"],
-    "9": ["2", "0"],
-}
+# ==========================================
+# PAGE CONFIGURATION
+# ==========================================
 
-# Page Configuration
 st.set_page_config(
     page_title="Number Generator",
     page_icon="🔢",
     layout="centered"
 )
 
-# Custom CSS for modern styling
+# ==========================================
+# SOURCE PATTERNS
+# ==========================================
+
+SOURCE_NUMBERS = [
+    "139", "267",
+    "2046", "0958",
+    "578", "143"
+]
+
+# Extract unique digits from all source numbers
+AVAILABLE_DIGITS = sorted(set("".join(SOURCE_NUMBERS)))
+
+# ==========================================
+# GENERATION FUNCTION
+# ==========================================
+
+def generate_random_numbers(input_number, count=2):
+
+    length = len(input_number)
+
+    if length > len(AVAILABLE_DIGITS):
+        return []
+
+    results = set()
+
+    while len(results) < count:
+
+        # Select unique digits from source patterns
+        selected = random.sample(AVAILABLE_DIGITS, length)
+
+        # Mix the digits
+        random.shuffle(selected)
+
+        output = "".join(selected)
+
+        results.add(output)
+
+    return list(results)
+
+
+# ==========================================
+# CUSTOM UI / STYLES
+# ==========================================
+
 st.markdown("""
-    <style>
-    /* Main container padding */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-width: 680px;
-    }
-    
-    /* Input box styling */
-    div[data-baseweb="input"] {
-        border-radius: 10px;
-    }
-    
-    /* Custom Card Design for Results */
-    .result-card {
-        background: linear-gradient(135deg, #2b2c36 0%, #1e1e24 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 20px 10px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .result-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 24px rgba(0,0,0,0.25);
-    }
+<style>
+/* Main Container */
+.block-container {
+    max-width: 680px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
 
-    .result-label {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        color: #94a3b8;
-        margin-bottom: 6px;
-        font-weight: 600;
-    }
+/* Header Styling */
+.header-box {
+    text-align: center;
+    padding: 1.5rem 0 1rem 0;
+}
 
-    .result-value {
-        font-size: 32px;
-        font-weight: 800;
-        letter-spacing: 2px;
-        color: #38bdf8;
-        font-family: 'Source Code Pro', monospace;
-    }
-    </style>
+.heading {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* Card Styling */
+.result-card {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 24px 16px;
+    text-align: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 12px;
+}
+
+.result-card:hover {
+    border-color: #38bdf8;
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px -10px rgba(56, 189, 248, 0.2);
+}
+
+.result-label {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.result-number {
+    color: #f8fafc;
+    font-size: 36px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    letter-spacing: 4px;
+    text-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+}
+
+/* Customizing Input Fields */
+div[data-baseweb="input"] {
+    border-radius: 12px !important;
+}
+
+button[kind="primary"] {
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    background: linear-gradient(135deg, #0284c7, #6366f1) !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+}
+
+button[kind="primary"]:hover {
+    opacity: 0.95;
+    transform: scale(1.01);
+}
+</style>
 """, unsafe_allow_html=True)
 
-# Title & Header
-st.title("🔢 Number Generator")
-st.caption("Generate unique digit permutations from standard mapped pairs.")
+
+# ==========================================
+# HEADER
+# ==========================================
+
+st.markdown(
+    """
+    <div class="header-box">
+        <div class="heading">🔢 Number Generator</div>
+        <div class="subtitle">Randomized Combination Generator</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 st.divider()
 
-# Session State Initialization
+
+# ==========================================
+# INPUT SECTION
+# ==========================================
+
+number = st.text_input(
+    "Enter Your Input Number",
+    placeholder="e.g. 156",
+    max_chars=10
+).strip()
+
+generate = st.button(
+    "✨ GENERATE 2 NUMBERS",
+    use_container_width=True,
+    type="primary"
+)
+
+
+# ==========================================
+# SESSION STATE
+# ==========================================
+
 if "results" not in st.session_state:
     st.session_state.results = []
-if "third_index" not in st.session_state:
-    st.session_state.third_index = 0
-if "last_number" not in st.session_state:
-    st.session_state.last_number = ""
 
-# Input Form Area
-with st.container():
-    number = st.text_input(
-        "Enter Number",
-        placeholder="e.g. 156",
-        max_chars=4,
-        help="Enter any 2, 3, or 4 digit sequence."
-    ).strip()
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
 
-    generate_btn = st.button("✨ GENERATE", use_container_width=True, type="primary")
 
-# Generation Logic
-if generate_btn:
+# ==========================================
+# GENERATION LOGIC
+# ==========================================
+
+if generate:
+
     if not number.isdigit():
-        st.error("⚠️ Invalid input: Please enter numbers only.", icon="🚨")
-    elif len(number) not in [2, 3, 4]:
-        st.warning("⚠️ Length error: Input must be exactly 2, 3, or 4 digits.", icon="📏")
+
+        st.error("Please enter numbers only.")
+
+    elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
+
+        st.warning(f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits.")
+
     else:
-        # Get possible values for each digit
-        possibilities = [NUMBER_MAP[digit] for digit in number]
 
-        # Generate all combinations
-        combinations = ["".join(c) for c in product(*possibilities)]
+        results = generate_random_numbers(number, count=2)
 
-        # Remove duplicates while preserving order
-        combinations = list(dict.fromkeys(combinations))
+        if len(results) == 2:
 
-        if len(combinations) < 3:
-            st.error("Not enough combinations generated to build a 3-result set.")
-        else:
-            first = combinations[0]
-            second = combinations[1]
-            remaining = combinations[2:]
+            st.session_state.results = results
+            st.session_state.last_input = number
 
-            # Reset index if the input changed
-            if st.session_state.last_number != number:
-                st.session_state.third_index = 0
-                st.session_state.last_number = number
-            else:
-                st.session_state.third_index = (st.session_state.third_index + 1) % len(remaining)
 
-            third = remaining[st.session_state.third_index]
+# ==========================================
+# OUTPUT DISPLAY
+# ==========================================
 
-            st.session_state.results = [first, second, third]
-            st.session_state.total_remaining = len(remaining)
-
-# Results Display Section
 if st.session_state.results:
-    st.write("")
-    
-    # Rotation counter indicator
-    if "total_remaining" in st.session_state:
-        current_step = st.session_state.third_index + 1
-        total_steps = st.session_state.total_remaining
-        st.caption(f"🔄 Rotating combination **{current_step} of {total_steps}** for item #3")
 
-    # Column Grid Display
-    cols = st.columns(3)
-    labels = ["Fixed #1", "Fixed #2", "Rotated #3"]
+    st.divider()
 
-    for idx, (col, res, label) in enumerate(zip(cols, st.session_state.results, labels)):
-        with col:
+    st.markdown("### 🎯 Generated Outputs")
+    st.caption(f"Based on pattern length for input: **{st.session_state.last_input}**")
+
+    cols = st.columns(2)
+
+    for i, result in enumerate(st.session_state.results):
+
+        with cols[i]:
+
             st.markdown(
                 f"""
                 <div class="result-card">
-                    <div class="result-label">{label}</div>
-                    <div class="result-value">{res}</div>
+                    <div class="result-label">OPTION #{i + 1}</div>
+                    <div class="result-number">{result}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
+
+    st.caption("✨ Two unique random combinations built from source digits.")
+
+
+# ==========================================
+# SOURCE INFORMATION
+# ==========================================
+
+with st.expander("View Source Patterns & Digits"):
+
+    st.write("**Patterns:**")
+    st.code("139 → 267\n2046 → 0958\n578 → 143", language="text")
+
+    st.write("**Available Digits Set:**")
+    st.info(", ".join(AVAILABLE_DIGITS))
