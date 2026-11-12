@@ -1,3 +1,4 @@
+
 import streamlit as st
 import random
 
@@ -28,28 +29,22 @@ AVAILABLE_DIGITS = sorted(set("".join(SOURCE_NUMBERS)))
 # GENERATION FUNCTION
 # ==========================================
 
-def generate_random_numbers(input_number, count=2):
+def generate_random_numbers(input_number):
 
     length = len(input_number)
 
     if length > len(AVAILABLE_DIGITS):
         return []
 
-    results = set()
+    # Select unique digits from source patterns
+    selected = random.sample(AVAILABLE_DIGITS, length)
 
-    while len(results) < count:
+    # Mix the digits
+    random.shuffle(selected)
 
-        # Select unique digits from source patterns
-        selected = random.sample(AVAILABLE_DIGITS, length)
+    output = "".join(selected)
 
-        # Mix the digits
-        random.shuffle(selected)
-
-        output = "".join(selected)
-
-        results.add(output)
-
-    return list(results)
+    return [output]
 
 
 # ==========================================
@@ -58,6 +53,7 @@ def generate_random_numbers(input_number, count=2):
 
 st.markdown("""
 <style>
+
 /* Main Container */
 .block-container {
     max-width: 680px;
@@ -142,6 +138,7 @@ button[kind="primary"]:hover {
     opacity: 0.95;
     transform: scale(1.01);
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -174,7 +171,7 @@ number = st.text_input(
 ).strip()
 
 generate = st.button(
-    "✨ GENERATE 2 NUMBERS",
+    "✨ GENERATE NUMBER",
     use_container_width=True,
     type="primary"
 )
@@ -199,17 +196,21 @@ if generate:
 
     if not number.isdigit():
 
+        st.session_state.results = []
         st.error("Please enter numbers only.")
 
     elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
 
-        st.warning(f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits.")
+        st.session_state.results = []
+        st.warning(
+            f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits."
+        )
 
     else:
 
-        results = generate_random_numbers(number, count=2)
+        results = generate_random_numbers(number)
 
-        if len(results) == 2:
+        if len(results) == 1:
 
             st.session_state.results = results
             st.session_state.last_input = number
@@ -223,26 +224,28 @@ if st.session_state.results:
 
     st.divider()
 
-    st.markdown("### 🎯 Generated Outputs")
-    st.caption(f"Based on pattern length for input: **{st.session_state.last_input}**")
+    st.markdown("### 🎯 Generated Output")
 
-    cols = st.columns(2)
+    st.caption(
+        f"Based on pattern length for input: "
+        f"**{st.session_state.last_input}**"
+    )
 
-    for i, result in enumerate(st.session_state.results):
+    result = st.session_state.results[0]
 
-        with cols[i]:
+    st.markdown(
+        f"""
+        <div class="result-card">
+            <div class="result-label">GENERATED NUMBER</div>
+            <div class="result-number">{result}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-            st.markdown(
-                f"""
-                <div class="result-card">
-                    <div class="result-label">OPTION #{i + 1}</div>
-                    <div class="result-number">{result}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-    st.caption("✨ Two unique random combinations built from source digits.")
+    st.caption(
+        "✨ One unique random combination built from source digits."
+    )
 
 
 # ==========================================
@@ -252,7 +255,12 @@ if st.session_state.results:
 with st.expander("View Source Patterns & Digits"):
 
     st.write("**Patterns:**")
-    st.code("139 → 267\n2046 → 0958\n578 → 143", language="text")
+
+    st.code(
+        "139 → 267\n2046 → 0958\n578 → 143",
+        language="text"
+    )
 
     st.write("**Available Digits Set:**")
+
     st.info(", ".join(AVAILABLE_DIGITS))
