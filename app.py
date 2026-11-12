@@ -36,11 +36,14 @@ def generate_random_numbers(input_number):
     if length > len(AVAILABLE_DIGITS):
         return []
 
-    # Select unique digits from source patterns
-    selected = random.sample(AVAILABLE_DIGITS, length)
+    # Fixed random generator based on input
+    rng = random.Random(input_number)
 
-    # Mix the digits
-    random.shuffle(selected)
+    # Select unique digits
+    selected = rng.sample(AVAILABLE_DIGITS, length)
+
+    # Mix digits deterministically
+    rng.shuffle(selected)
 
     output = "".join(selected)
 
@@ -197,11 +200,15 @@ if generate:
     if not number.isdigit():
 
         st.session_state.results = []
+        st.session_state.last_input = ""
+
         st.error("Please enter numbers only.")
 
     elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
 
         st.session_state.results = []
+        st.session_state.last_input = ""
+
         st.warning(
             f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits."
         )
@@ -244,7 +251,7 @@ if st.session_state.results:
     )
 
     st.caption(
-        "✨ One unique random combination built from source digits."
+        "✨ One fixed combination generated from source digits."
     )
 
 
