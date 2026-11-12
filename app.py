@@ -22,32 +22,33 @@ SOURCE_NUMBERS = [
     "578", "143"
 ]
 
-# Extract unique digits from all source numbers
 AVAILABLE_DIGITS = sorted(set("".join(SOURCE_NUMBERS)))
+
 
 # ==========================================
 # GENERATION FUNCTION
 # ==========================================
 
-def generate_random_numbers(input_number):
+def generate_random_number(input_number, previous=None):
 
     length = len(input_number)
 
     if length > len(AVAILABLE_DIGITS):
-        return []
+        return None
 
-    # Fixed random generator based on input
-    rng = random.Random(input_number)
+    # Generate a new random combination
+    # different from the previous output
+    while True:
 
-    # Select unique digits
-    selected = rng.sample(AVAILABLE_DIGITS, length)
+        selected = random.sample(
+            AVAILABLE_DIGITS,
+            length
+        )
 
-    # Mix digits deterministically
-    rng.shuffle(selected)
+        output = "".join(selected)
 
-    output = "".join(selected)
-
-    return [output]
+        if output != previous:
+            return output
 
 
 # ==========================================
@@ -86,7 +87,7 @@ st.markdown("""
     font-weight: 400;
 }
 
-/* Card Styling */
+/* Result Card */
 .result-card {
     background: rgba(30, 41, 59, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -95,7 +96,7 @@ st.markdown("""
     padding: 24px 16px;
     text-align: center;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     margin-bottom: 12px;
 }
 
@@ -123,16 +124,19 @@ st.markdown("""
     text-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
 }
 
-/* Customizing Input Fields */
+/* Input Fields */
 div[data-baseweb="input"] {
     border-radius: 12px !important;
 }
 
+/* Generate Button */
 button[kind="primary"] {
     border-radius: 12px !important;
     font-weight: 700 !important;
     letter-spacing: 0.5px !important;
-    background: linear-gradient(135deg, #0284c7, #6366f1) !important;
+    background: linear-gradient(
+        135deg, #0284c7, #6366f1
+    ) !important;
     border: none !important;
     transition: all 0.2s ease !important;
 }
@@ -154,7 +158,9 @@ st.markdown(
     """
     <div class="header-box">
         <div class="heading">🔢 Number Generator</div>
-        <div class="subtitle">Randomized Combination Generator</div>
+        <div class="subtitle">
+            Randomized Combination Generator
+        </div>
     </div>
     """,
     unsafe_allow_html=True
@@ -184,8 +190,8 @@ generate = st.button(
 # SESSION STATE
 # ==========================================
 
-if "results" not in st.session_state:
-    st.session_state.results = []
+if "result" not in st.session_state:
+    st.session_state.result = None
 
 if "last_input" not in st.session_state:
     st.session_state.last_input = ""
@@ -199,14 +205,14 @@ if generate:
 
     if not number.isdigit():
 
-        st.session_state.results = []
+        st.session_state.result = None
         st.session_state.last_input = ""
 
         st.error("Please enter numbers only.")
 
     elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
 
-        st.session_state.results = []
+        st.session_state.result = None
         st.session_state.last_input = ""
 
         st.warning(
@@ -215,19 +221,23 @@ if generate:
 
     else:
 
-        results = generate_random_numbers(number)
+        # Avoid repeating the previous result
+        previous = st.session_state.result
 
-        if len(results) == 1:
+        new_result = generate_random_number(
+            number,
+            previous
+        )
 
-            st.session_state.results = results
-            st.session_state.last_input = number
+        st.session_state.result = new_result
+        st.session_state.last_input = number
 
 
 # ==========================================
 # OUTPUT DISPLAY
 # ==========================================
 
-if st.session_state.results:
+if st.session_state.result:
 
     st.divider()
 
@@ -238,20 +248,24 @@ if st.session_state.results:
         f"**{st.session_state.last_input}**"
     )
 
-    result = st.session_state.results[0]
+    result = st.session_state.result
 
     st.markdown(
         f"""
         <div class="result-card">
-            <div class="result-label">GENERATED NUMBER</div>
-            <div class="result-number">{result}</div>
+            <div class="result-label">
+                GENERATED NUMBER
+            </div>
+            <div class="result-number">
+                {result}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
     st.caption(
-        "✨ One fixed combination generated from source digits."
+        "✨ One new random combination on every click."
     )
 
 
