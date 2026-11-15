@@ -1,5 +1,6 @@
 
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 
 # ==========================================
@@ -26,29 +27,55 @@ AVAILABLE_DIGITS = sorted(set("".join(SOURCE_NUMBERS)))
 
 
 # ==========================================
+# FIXED COLOUR FOR EACH DIGIT
+# ==========================================
+
+DIGIT_COLORS = {
+    "0": "#A855F7",  # Purple
+    "1": "#3B82F6",  # Blue
+    "2": "#EF4444",  # Red
+    "3": "#22C55E",  # Green
+    "4": "#F59E0B",  # Orange
+    "5": "#EC4899",  # Pink
+    "6": "#06B6D4",  # Cyan
+    "7": "#F97316",  # Orange
+    "8": "#A3E635",  # Lime
+    "9": "#E879F9"   # Violet
+}
+
+
+# ==========================================
 # GENERATION FUNCTION
 # ==========================================
 
-def generate_random_number(input_number, previous=None):
+def generate_random_number(input_number):
 
     length = len(input_number)
 
-    if length > len(AVAILABLE_DIGITS):
-        return None
+    selected = random.sample(
+        AVAILABLE_DIGITS,
+        length
+    )
 
-    # Generate a new random combination
-    # different from the previous output
-    while True:
+    return "".join(selected)
 
-        selected = random.sample(
-            AVAILABLE_DIGITS,
-            length
-        )
 
-        output = "".join(selected)
+# ==========================================
+# GENERATE ONLY TWO UNIQUE POSSIBILITIES
+# ==========================================
 
-        if output != previous:
-            return output
+def generate_two_possibilities(input_number):
+
+    possibilities = []
+
+    while len(possibilities) < 2:
+
+        result = generate_random_number(input_number)
+
+        if result not in possibilities:
+            possibilities.append(result)
+
+    return possibilities
 
 
 # ==========================================
@@ -65,7 +92,7 @@ st.markdown("""
     padding-bottom: 3rem;
 }
 
-/* Header Styling */
+/* Header */
 .header-box {
     text-align: center;
     padding: 1.5rem 0 1rem 0;
@@ -87,44 +114,7 @@ st.markdown("""
     font-weight: 400;
 }
 
-/* Result Card */
-.result-card {
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 24px 16px;
-    text-align: center;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    margin-bottom: 12px;
-}
-
-.result-card:hover {
-    border-color: #38bdf8;
-    transform: translateY(-4px);
-    box-shadow: 0 20px 30px -10px rgba(56, 189, 248, 0.2);
-}
-
-.result-label {
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-
-.result-number {
-    color: #f8fafc;
-    font-size: 36px;
-    font-weight: 800;
-    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
-    letter-spacing: 4px;
-    text-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
-}
-
-/* Input Fields */
+/* Input */
 div[data-baseweb="input"] {
     border-radius: 12px !important;
 }
@@ -154,19 +144,33 @@ button[kind="primary"]:hover {
 # HEADER
 # ==========================================
 
-st.markdown(
-    """
-    <div class="header-box">
-        <div class="heading">🔢 Number Generator</div>
-        <div class="subtitle">
-            Randomized Combination Generator
-        </div>
+st.markdown("""
+<div class="header-box">
+    <div class="heading">🔢 Number Generator</div>
+    <div class="subtitle">
+        Randomized Combination Generator
     </div>
-    """,
-    unsafe_allow_html=True
-)
+</div>
+""", unsafe_allow_html=True)
 
 st.divider()
+
+
+# ==========================================
+# SESSION STATE
+# ==========================================
+
+if "possibilities" not in st.session_state:
+    st.session_state.possibilities = []
+
+if "current_index" not in st.session_state:
+    st.session_state.current_index = 0
+
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
+
+if "result" not in st.session_state:
+    st.session_state.result = None
 
 
 # ==========================================
@@ -187,17 +191,6 @@ generate = st.button(
 
 
 # ==========================================
-# SESSION STATE
-# ==========================================
-
-if "result" not in st.session_state:
-    st.session_state.result = None
-
-if "last_input" not in st.session_state:
-    st.session_state.last_input = ""
-
-
-# ==========================================
 # GENERATION LOGIC
 # ==========================================
 
@@ -206,14 +199,11 @@ if generate:
     if not number.isdigit():
 
         st.session_state.result = None
-        st.session_state.last_input = ""
-
         st.error("Please enter numbers only.")
 
     elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
 
         st.session_state.result = None
-        st.session_state.last_input = ""
 
         st.warning(
             f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits."
@@ -221,16 +211,32 @@ if generate:
 
     else:
 
-        # Avoid repeating the previous result
-        previous = st.session_state.result
+        # Generate a new pair only when input changes
+        if (
+            number != st.session_state.last_input
+            or not st.session_state.possibilities
+        ):
 
-        new_result = generate_random_number(
-            number,
-            previous
+            st.session_state.possibilities = (
+                generate_two_possibilities(number)
+            )
+
+            st.session_state.current_index = 0
+            st.session_state.last_input = number
+
+        else:
+
+            # Alternate between the same two possibilities
+            st.session_state.current_index = (
+                1 - st.session_state.current_index
+            )
+
+        # Display only one possibility
+        st.session_state.result = (
+            st.session_state.possibilities[
+                st.session_state.current_index
+            ]
         )
-
-        st.session_state.result = new_result
-        st.session_state.last_input = number
 
 
 # ==========================================
@@ -244,29 +250,130 @@ if st.session_state.result:
     st.markdown("### 🎯 Generated Output")
 
     st.caption(
-        f"Based on pattern length for input: "
-        f"**{st.session_state.last_input}**"
+        f"Based on input: **{st.session_state.last_input}**"
     )
 
     result = st.session_state.result
 
-    st.markdown(
-        f"""
-        <div class="result-card">
-            <div class="result-label">
-                GENERATED NUMBER
-            </div>
-            <div class="result-number">
-                {result}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+    # Apply fixed colour to every digit
+    colored_digits = "".join(
+        f'<span style="color:{DIGIT_COLORS[digit]};">'
+        f'{digit}</span>'
+        for digit in result
+    )
+
+    # Single rectangular output card
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+* {{
+    box-sizing: border-box;
+}}
+
+body {{
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: Arial, sans-serif;
+}}
+
+.result-card {{
+    width: 100%;
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 32px 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.20);
+}}
+
+.result-label {{
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+}}
+
+.result-number {{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    font-family: monospace;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: 4px;
+}}
+
+</style>
+</head>
+
+<body>
+
+<div class="result-card">
+
+    <div class="result-label">
+        GENERATED NUMBER
+    </div>
+
+    <div class="result-number">
+        {colored_digits}
+    </div>
+
+</div>
+
+</body>
+</html>
+"""
+
+    components.html(
+        html,
+        height=155,
+        scrolling=False
     )
 
     st.caption(
-        "✨ One new random combination on every click."
+        "✨ Alternating between your 2 fixed possibilities."
     )
+
+
+# ==========================================
+# DIGIT COLOUR MAPPING
+# ==========================================
+
+with st.expander("🎨 View Digit Colour Mapping"):
+
+    st.markdown("### Fixed Colours for Each Digit")
+
+    columns = st.columns(5)
+
+    for index, (digit, color) in enumerate(DIGIT_COLORS.items()):
+
+        with columns[index % 5]:
+
+            st.markdown(
+                f"""
+                <div style="
+                    background:#1e293b;
+                    border:1px solid {color};
+                    border-radius:12px;
+                    padding:12px 5px;
+                    text-align:center;
+                    margin-bottom:10px;
+                ">
+                    <div style="
+                        font-size:27px;
+                        font-weight:800;
+                        color:{color};
+                    ">{digit}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 
 # ==========================================
