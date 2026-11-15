@@ -14,68 +14,103 @@ st.set_page_config(
 )
 
 # ==========================================
-# SOURCE PATTERNS
-# ==========================================
-
-SOURCE_NUMBERS = [
-    "139", "267",
-    "2046", "0958",
-    "578", "143"
-]
-
-AVAILABLE_DIGITS = sorted(set("".join(SOURCE_NUMBERS)))
-
-
-# ==========================================
 # FIXED COLOUR FOR EACH DIGIT
 # ==========================================
 
 DIGIT_COLORS = {
-    "0": "#A855F7",  # Purple
-    "1": "#3B82F6",  # Blue
-    "2": "#EF4444",  # Red
-    "3": "#22C55E",  # Green
-    "4": "#F59E0B",  # Orange
-    "5": "#EC4899",  # Pink
-    "6": "#06B6D4",  # Cyan
-    "7": "#F97316",  # Orange
-    "8": "#A3E635",  # Lime
-    "9": "#E879F9"   # Violet
+    "0": "#A855F7",
+    "1": "#3B82F6",
+    "2": "#EF4444",
+    "3": "#22C55E",
+    "4": "#F59E0B",
+    "5": "#EC4899",
+    "6": "#06B6D4",
+    "7": "#F97316",
+    "8": "#A3E635",
+    "9": "#E879F9"
 }
 
 
 # ==========================================
-# GENERATION FUNCTION
+# RANDOM NUMBER GENERATION
+# EXACTLY ONE DIGIT REPEATS TWICE
 # ==========================================
 
 def generate_random_number(input_number):
 
     length = len(input_number)
 
-    selected = random.sample(
-        AVAILABLE_DIGITS,
-        length
-    )
+    while True:
 
-    return "".join(selected)
+        # Select length - 1 unique digits
+        unique_digits = random.sample(
+            "0123456789",
+            length - 1
+        )
+
+        # Select exactly one digit to repeat
+        repeated_digit = random.choice(unique_digits)
+
+        # Create the number with exactly one pair
+        digits = unique_digits.copy()
+        digits.append(repeated_digit)
+
+        # Randomly mix all digits
+        random.shuffle(digits)
+
+        result = "".join(digits)
+
+        # Validate exactly one repeated digit
+        if sum(
+            result.count(digit) == 2
+            for digit in set(result)
+        ) != 1:
+            continue
+
+        # All other digits must appear once
+        if any(result.count(digit) > 2 for digit in set(result)):
+            continue
+
+        # No consecutive identical digits
+        if any(
+            result[i] == result[i + 1]
+            for i in range(length - 1)
+        ):
+            continue
+
+        # First and last digits must be different
+        if result[0] == result[-1]:
+            continue
+
+        return result
 
 
 # ==========================================
-# GENERATE ONLY TWO UNIQUE POSSIBILITIES
+# GENERATE POSSIBILITIES
 # ==========================================
 
-def generate_two_possibilities(input_number):
+def generate_possibilities(input_number):
 
-    possibilities = []
+    length = len(input_number)
 
-    while len(possibilities) < 2:
+    if length == 8:
+        count = 3
+
+    elif length in (5, 6):
+        count = 2
+
+    else:
+        count = 2
+
+    possibilities = set()
+
+    while len(possibilities) < count:
 
         result = generate_random_number(input_number)
 
-        if result not in possibilities:
-            possibilities.append(result)
+        possibilities.add(result)
 
-    return possibilities
+    return list(possibilities)
 
 
 # ==========================================
@@ -85,14 +120,12 @@ def generate_two_possibilities(input_number):
 st.markdown("""
 <style>
 
-/* Main Container */
 .block-container {
     max-width: 680px;
     padding-top: 2rem;
     padding-bottom: 3rem;
 }
 
-/* Header */
 .header-box {
     text-align: center;
     padding: 1.5rem 0 1rem 0;
@@ -111,15 +144,12 @@ st.markdown("""
 .subtitle {
     font-size: 14px;
     color: #94a3b8;
-    font-weight: 400;
 }
 
-/* Input */
 div[data-baseweb="input"] {
     border-radius: 12px !important;
 }
 
-/* Generate Button */
 button[kind="primary"] {
     border-radius: 12px !important;
     font-weight: 700 !important;
@@ -179,8 +209,8 @@ if "result" not in st.session_state:
 
 number = st.text_input(
     "Enter Your Input Number",
-    placeholder="e.g. 156",
-    max_chars=10
+    placeholder="e.g. 15634",
+    max_chars=20
 ).strip()
 
 generate = st.button(
@@ -199,26 +229,27 @@ if generate:
     if not number.isdigit():
 
         st.session_state.result = None
+
         st.error("Please enter numbers only.")
 
-    elif not 2 <= len(number) <= len(AVAILABLE_DIGITS):
+    elif len(number) < 3 or len(number) > 10:
 
         st.session_state.result = None
 
         st.warning(
-            f"Enter between 2 and {len(AVAILABLE_DIGITS)} digits."
+            "Please enter between 3 and 10 digits."
         )
 
     else:
 
-        # Generate a new pair only when input changes
+        # Generate a fresh set when input changes
         if (
             number != st.session_state.last_input
             or not st.session_state.possibilities
         ):
 
             st.session_state.possibilities = (
-                generate_two_possibilities(number)
+                generate_possibilities(number)
             )
 
             st.session_state.current_index = 0
@@ -226,9 +257,10 @@ if generate:
 
         else:
 
-            # Alternate between the same two possibilities
+            # Alternate through the same possibilities
             st.session_state.current_index = (
-                1 - st.session_state.current_index
+                (st.session_state.current_index + 1)
+                % len(st.session_state.possibilities)
             )
 
         # Display only one possibility
@@ -255,7 +287,7 @@ if st.session_state.result:
 
     result = st.session_state.result
 
-    # Apply fixed colour to every digit
+    # Fixed colour for every digit
     colored_digits = "".join(
         f'<span style="color:{DIGIT_COLORS[digit]};">'
         f'{digit}</span>'
@@ -302,11 +334,19 @@ body {{
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
     font-family: monospace;
-    font-size: 48px;
+    font-size: 42px;
     font-weight: 800;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
+}}
+
+@media (max-width: 400px) {{
+    .result-number {{
+        font-size: 30px;
+        gap: 5px;
+    }}
 }}
 
 </style>
@@ -337,7 +377,7 @@ body {{
     )
 
     st.caption(
-        "✨ Alternating between your 2 fixed possibilities."
+        "✨ One repeated digit. All other digits unique."
     )
 
 
@@ -346,8 +386,6 @@ body {{
 # ==========================================
 
 with st.expander("🎨 View Digit Colour Mapping"):
-
-    st.markdown("### Fixed Colours for Each Digit")
 
     columns = st.columns(5)
 
@@ -377,18 +415,22 @@ with st.expander("🎨 View Digit Colour Mapping"):
 
 
 # ==========================================
-# SOURCE INFORMATION
+# GENERATION INFORMATION
 # ==========================================
 
-with st.expander("View Source Patterns & Digits"):
+with st.expander("View Generation Rules"):
 
-    st.write("**Patterns:**")
+    st.write("""
+    - Exactly one digit repeats twice.
+    - All remaining digits are unique.
+    - No digit repeats more than twice.
+    - No consecutive identical digits.
+    - First and last digits must differ.
+    - Digits are randomly mixed.
+    - Only one output appears at a time.
+    - Possibilities alternate on every click.
+    """)
 
-    st.code(
-        "139 → 267\n2046 → 0958\n578 → 143",
-        language="text"
-    )
+    st.write("**Available digits:**")
 
-    st.write("**Available Digits Set:**")
-
-    st.info(", ".join(AVAILABLE_DIGITS))
+    st.info("0, 1, 2, 3, 4, 5, 6, 7, 8, 9")
